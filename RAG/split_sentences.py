@@ -38,12 +38,7 @@ if args.n_compute != -1:
     end_idx = args.start_idx+args.n_compute
 
 
-# #create/extend a mapping for all evidence
-# if os.path.exists(os.path.join(args.store_folder, "evidence_mapping.json")):
-#     with open(os.path.join(args.store_folder, "evidence_mapping.json"), 'r') as f:
-#         evidence_mapping = json.load(f)
-# else:
-#     evidence_mapping = []
+
 
 for claim in tqdm(data[args.start_idx:end_idx]):
     for evidence in claim['evidence_url']:
@@ -57,16 +52,6 @@ for claim in tqdm(data[args.start_idx:end_idx]):
             for sentence in sentences:
                 f.write(sentence + '\n')  # Write each sentence followed by a newline
 
-        # evidence_mapping.append({
-        #     'evidence_id': id,
-        #     'original_link': evidence_url,
-        #     'archive_url': evidence['archive_url'],
-        #     'html_file': evidence['html_file']
-        # })
 
-
-    
-# with open(os.path.join(args.store_folder, "evidence_mapping.json"), 'w') as f:
-#     json.dump(evidence_mapping, f)
 
      
