@@ -37,9 +37,6 @@ end_idx = -1
 if args.n_compute != -1:
     end_idx = args.start_idx+args.n_compute
 
-
-
-
 for claim in tqdm(data[args.start_idx:end_idx]):
     for evidence in claim['evidence_url']:
         id=evidence['evidence_id']
