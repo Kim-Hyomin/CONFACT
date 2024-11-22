@@ -1,0 +1,13 @@
+# BM25 without media info
+Inference completed in 223.31 seconds.
+CUDA Device: CUDA Device ID: 0, Device Name: NVIDIA A100 80GB PCIe
+stat:  0.5008183306055647
+
+# Discern without media info
+Inference completed in 257.74 seconds.
+CUDA Device: CUDA Device ID: 0, Device Name: NVIDIA A100 80GB PCIe
+stat:  0.5891980360065466
+
+#Explain without media info
+Inference completed in 249.32 seconds.
+CUDA Device: CUDA Device ID: 0, Device Name: NVIDIA A100 80GB PCIe

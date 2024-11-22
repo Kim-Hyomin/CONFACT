@@ -10,6 +10,7 @@ from rank_bm25 import BM25Okapi
 import pickle as pkl
 import logging
 
+sentence_logger = logging.getLogger('sentence_retriever')
 
 def load_pkl(path):
     data=pkl.load(open(path,'rb'))
@@ -22,7 +23,7 @@ def load_json(path):
 
 class SentenceProcessor:
     def __init__(self):
-        logging.info(f"initializing sentence splitter..")
+        sentence_logger.info(f"initializing sentence splitter..")
 
     @staticmethod
     def split_into_sentences(text):
@@ -33,8 +34,8 @@ class SentenceProcessor:
         sentences = [sentence.replace('<ABBR>', '.') for sentence in sentences]
         return sentences
 
-    def store_sentences(self, source, store_path):
-        data = load_json(source)
+    def store_sentences(self, source_path, store_path):
+        data = load_pkl(source_path)
         
         all_evidence = {}
         
@@ -51,21 +52,20 @@ class SentenceProcessor:
         
         if not os.path.exists(os.path.dirname(store_path)):
             os.mkdir(os.path.dirname(store_path))
-        logging.info(f"Saving evidence to {store_path}...")
+        sentence_logger.info(f"Saving evidence to {store_path}...")
 
         with open(store_path, 'wb') as f:
             pickle.dump(all_evidence, f)
-        logging.info("Finished storing sentences in .pkl file.")
+        sentence_logger.info("Finished storing sentences in .pkl file.")
 
 class BM25Retriever:
-    def __init__(self, k=5):
+    def __init__(self, k=100):
         self.k = k
-        logging.info(f"Initialized BM25Retriever with k={k}")
+        sentence_logger.info(f"Initialized BM25Retriever with k={k}")
 
     def retrieve_for_qn(self, item, evidence_data):
         question_id = item['id']
         question = item['question']
-        logging.info(f"Retrieving sentences for question: {question}")
         
         all_sentences = []
         sentence_corpus = []
@@ -105,46 +105,56 @@ class BM25Retriever:
             'top_k': top_K,
         }
 
-    def retrieve_for_file(self, source_file, evidence_file, output_file):
-        logging.info(f"Loading file for BM25 retrieval from {source_file}...")
-        qns = load_json(source_file)
+    def retrieve_for_file(self, qns_entities, evidence_file, output_file = "./results/retrieved_sentences.pkl"):
+        
+ 
+        sentence_logger.info(f"Loading evidence data from {evidence_file}...")
+        sentence_logger.info(f"Retrieving evidence data...")
 
-        logging.info(f"Loading evidence data from {evidence_file}...")
         evidence_data = load_pkl(evidence_file)
 
 
         results = []
-        for qn in tqdm(qns, desc="Processing each question"):
+        for qn in tqdm(qns_entities, desc="Retrieving evidence for each question"):
             result = self.retrieve_for_qn(qn, evidence_data)
             results.append(result)
 
-        logging.info(f"Saving retrieval results to {output_file}.")
+        # [{
+        #     'question_id': question_id,
+        #     'question': question,
+        #     'top_k': top_K,
+        # }, {}, ...
+        # ]
 
-        with open(output_file, 'w') as f:
-            json.dump(results, f)
+        with open(output_file, 'wb') as f:
+            pickle.dump(results, f)
 
-        logging.info("BM25 retrieval completed and results saved.")
+        return results
 
-def main():
-    parser = argparse.ArgumentParser(description='BM25 Retrieval and Sentence Splitting')
-    parser.add_argument('--source', default="../data/dataset/intermediate_datasets/sample.json", help='Path to qns')
-    parser.add_argument('--store_path', default="../data/dataset/evidence/evidence.pkl", help='Path to store evidence sentences in a .pkl file')
-    parser.add_argument('--k', default=5, type=int, help='Number of top relevant sentences to retrieve')
-    parser.add_argument('--output_file', default="../data/dataset/retrieved_sentences.json", help='Output file to save results')
+# def main():
+
+
+#     parser = argparse.ArgumentParser(description='BM25 Retrieval and Sentence Splitting')
+#     parser.add_argument('--source', default="../data/dataset/intermediate_datasets/sample.json", help='Path to qns')
+#     parser.add_argument('--store_path', default="../data/dataset/evidence/evidence.pkl", help='Path to store evidence sentences in a .pkl file')
+#     parser.add_argument('--k', default=100, type=int, help='Number of top relevant sentences to retrieve')
+#     parser.add_argument('--output_file', default="../data/dataset/retrieved_sentences.pkl", help='Output file to save results')
     
-    args = parser.parse_args()
+#     args = parser.parse_args()
 
-    import logging
-    logging.basicConfig(level=logging.INFO)
+#     nltk.download('punkt_tab')
 
-    # Split sentences and store in .pkl file
-    sentence_processor = SentenceProcessor()
-    sentence_processor.store_sentences(args.source, args.store_path)
+#     # Split sentences and store in .pkl file
+#     sentence_processor = SentenceProcessor()
+#     sentence_processor.store_sentences(args.source, args.store_path)
 
-    # Perform BM25 retrieval for each qn
-    retriever = BM25Retriever(k=args.k)
-    retriever.retrieve_for_file(args.source, args.store_path, args.output_file)
+#     # Perform BM25 retrieval for each qn
+#     retriever = BM25Retriever(k=args.k)
 
-if __name__ == "__main__":
-    main()
+#     qns_entities = load_json(source_file)
+
+#     retriever.retrieve_for_file(qns_entities, args.store_path)
+
+# if __name__ == "__main__":
+#     main()
 

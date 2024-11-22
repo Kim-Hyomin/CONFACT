@@ -14,8 +14,7 @@ user_prompt_url = f"""Carefully review the content of the provided URL and deter
 
 user_prompt_text_noJustification = f"""Carefully review the content of the provided text and determine if it supports, rejects, or does not provide enough evidence to substantiate the claim, taking into account the date when the claim was made. \nRespond strictly with one of the following options only: \n- Support \n- Reject \n- Not enough evidence \nDo not provide any additional text or explanation."""
 
-user_prompt_text_wJustification = f"""Carefully review the content of the provided text and determine if it supports, rejects, or does not provide enough evidence to substantiate the claim, taking into account the date when the claim was made. \nRespond strictly with one of the following options only first, followed by justification within 500 words: \n- Support \n- Reject \n- Not enough evidence"""
-
+user_prompt_text_wJustification = f"""Please carefully evaluate the provided text in relation to the claim. Consider the date the claim was made, and assess whether the content supports, rejects, or provides insufficient evidence to substantiate the claim. \nProvide your reasoning in up to 500 words, and then give your conclusion by selecting one of the following options: \n- Support \n- Reject \n- Not enough evidence\n\nYou may start your conclusion with a prefix: 'Final answer: ' to clearly separate it from your reasoning."""
 
 
 def convert_to_batch_jsonl(folder, input_file, output_file, type):
