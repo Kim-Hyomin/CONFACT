@@ -8,7 +8,7 @@ import json
 import os
 import concurrent.futures
 import threading
-
+import argparse
 
 file_lock = threading.Lock()
 
@@ -46,7 +46,6 @@ def parse_html(url):
         return ''
 
 def parse_html_with_timeout(url, timeout=300):
-    """Parse the HTML with a timeout to avoid long-running requests."""
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(parse_html, url)
         try:
@@ -57,7 +56,7 @@ def parse_html_with_timeout(url, timeout=300):
             print(f"Timeout occurred while parsing: {url}")
             return ""  
 
-def process_claim_evidence(item):
+def process_claim_evidence(item, processed_claim):
     claim = item['claim']
     if claim in processed_claim:
         return None  # Skip already processed claims
@@ -71,29 +70,41 @@ def process_claim_evidence(item):
 
     return item
 
-claim_file = 'dataset/claimWevidence2.json'
-claim_evidence = json.load(open(claim_file, 'r', encoding='utf-8'))
 
-output_file = 'dataset/claimWevidence2_txt.json'
-if not os.path.exists(output_file):
-    with open(output_file, 'w') as f:
-        json.dump([], f, indent=4)
 
-output = json.load(open(output_file, 'r'))
-processed_claim = {item['claim'] for item in output}
-
-def write_output(output):
-    
+def write_output(output, output_file):
     with file_lock:
         with open(output_file, 'w') as f:
             json.dump(output, f, ensure_ascii=False, indent=4)
+            
+def main():
+
+    parser = argparse.ArgumentParser(description='Process a file of claims and search for related information.')
+    parser.add_argument('--input', type=str, help='The input file containing claims and searched urls')
+    parser.add_argument('--output', type=str, help='The outpt file containing scraped text content of each web page')
+    args = parser.parse_args()
 
 
-with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-    futures = [executor.submit(process_claim_evidence, item) for item in claim_evidence]
+    claim_file = args.input
+    claim_evidence = json.load(open(claim_file, 'r', encoding='utf-8'))
 
-    for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Processing claims"):
-        result = future.result()
-        if result is not None:
-            output.append(result)
-            write_output(output)
+    output_file = args.output
+    if not os.path.exists(output_file):
+        with open(output_file, 'w') as f:
+            json.dump([], f, indent=4)
+
+    output = json.load(open(output_file, 'r'))
+    processed_claim = {item['claim'] for item in output}
+
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(process_claim_evidence, item) for item in claim_evidence]
+
+        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Processing claims"):
+            result = future.result()
+            if result is not None:
+                output.append(result)
+                write_output(output, processed_claim)
+
+if __name__ == '__main__':
+    main()

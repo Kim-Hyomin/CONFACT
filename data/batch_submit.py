@@ -105,76 +105,72 @@ def process_batch_job(client, file_name):
         print(f"An error occurred: {e}")
 
 
+def main():
 
-            
+
+    parser = argparse.ArgumentParser(description='Process a file of claims and search for related information.')
+    parser.add_argument('--input', type=str, help='The input file containing claims and evidence')
+    parser.add_argument('--type', type=str, choices=['url', 'text_noJustification', 'text_wJustification', 'majority_vote'], help="Choose from 'url', 'text_noJustification', 'text_wJustification' or 'majority_vote'")
+    args = parser.parse_args()
+    
+    folder = 'batch_submission'+datetime.datetime.now().strftime("%Y-%m-%d_%H_%M")
+
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+
+    batch_id_file = os.path.join(folder, 'batch_ids.json')
+
+    if not os.path.exists(batch_id_file):
+        with open(batch_id_file, 'w') as f:
+            json.dump({}, f)
+
+    with open(batch_id_file, 'r') as f:
+        batch_ids = json.load(f)
+
+    if args.type not in ["url", "text_noJustification", "text_wJustification", "majority_vote"]:
+        raise argparse.ArgumentTypeError("Invalid type. Choose from 'url', 'text_noJustification', 'text_wJustification' or 'majority_vote'")
+
+    input_file = args.input
+
+    url_batch = os.path.join(folder, 'url.jsonl')
+    txtNoJus_batch = os.path.join(folder, 'txtNoJus.jsonl')
+    txtWJus_batch = os.path.join(folder, 'txtWJus.jsonl')
 
 
-folder = 'batch_submission'+datetime.datetime.now().strftime("%Y-%m-%d_%H_%M")
+    batch_id = {'url_batch_id': None, 'txtNoJust_batch_id': None, 'txtWJus_batch_id': None}
 
-if not os.path.exists(folder):
-    os.mkdir(folder)
+    with open(input_file, "r") as f:
+        data = json.load(f)
 
-batch_id_file = os.path.join(folder, 'batch_ids.json')
+    if args.type == "majority_vote":
 
-if not os.path.exists(batch_id_file):
+        convert_to_batch_jsonl(folder, input_file, url_batch, "url")
+        convert_to_batch_jsonl(folder, input_file, txtNoJus_batch, "text_noJustification")
+        convert_to_batch_jsonl(folder, input_file, txtWJus_batch, "text_wJustification")
+
+        batch_id["url_batch_id"] = process_batch_job(client, url_batch)
+        batch_id["txtNoJust_batch_id"] = process_batch_job(client, txtNoJus_batch)
+        batch_id["txtWJus_batch_id"] = process_batch_job(client, txtWJus_batch)
+
+    elif args.type == "url":
+        convert_to_batch_jsonl(folder, input_file, url_batch, "url")
+        batch_id["url_batch_id"] = process_batch_job(client, url_batch)
+
+    elif args.type == "text_noJustification":
+        convert_to_batch_jsonl(folder, input_file, txtNoJus_batch, "text_noJustification")
+        batch_id["txtNoJust_batch_id"] = process_batch_job(client, txtNoJus_batch)
+
+    elif args.type == "text_wJustification":
+        convert_to_batch_jsonl(folder, input_file, txtWJus_batch, "text_wJustification")
+        batch_id["txtWJus_batch_id"] = process_batch_job(client, txtWJus_batch)
+
+
+    print("submitted batch id:", batch_id)
+    batch_ids[datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")] = batch_id
     with open(batch_id_file, 'w') as f:
-        json.dump({}, f)
-
-with open(batch_id_file, 'r') as f:
-    batch_ids = json.load(f)
-
-
-#python batch_submit.py --input test_files/llm_batch_qa_1075_1100.json  --type majority_vote
-
-parser = argparse.ArgumentParser(description='Process a file of claims and search for related information.')
-parser.add_argument('--input', type=str, help='The input file containing claims')
-parser.add_argument('--type', type=str, help="Choose from 'url', 'text_noJustification', 'text_wJustification' or 'majority_vote'")
-args = parser.parse_args()
-
-if args.type not in ["url", "text_noJustification", "text_wJustification", "majority_vote"]:
-    raise argparse.ArgumentTypeError("Invalid type. Choose from 'url', 'text_noJustification', 'text_wJustification' or 'majority_vote'")
-
-input_file = args.input
-
-url_batch = os.path.join(folder, 'url.jsonl')
-txtNoJus_batch = os.path.join(folder, 'txtNoJus.jsonl')
-txtWJus_batch = os.path.join(folder, 'txtWJus.jsonl')
+        json.dump(batch_ids, f)
 
 
 
-
-batch_id = {'url_batch_id': None, 'txtNoJust_batch_id': None, 'txtWJus_batch_id': None}
-
-with open(input_file, "r") as f:
-    data = json.load(f)
-
-if args.type == "majority_vote":
-
-    convert_to_batch_jsonl(folder, input_file, url_batch, "url")
-    convert_to_batch_jsonl(folder, input_file, txtNoJus_batch, "text_noJustification")
-    convert_to_batch_jsonl(folder, input_file, txtWJus_batch, "text_wJustification")
-
-    batch_id["url_batch_id"] = process_batch_job(client, url_batch)
-    batch_id["txtNoJust_batch_id"] = process_batch_job(client, txtNoJus_batch)
-    batch_id["txtWJus_batch_id"] = process_batch_job(client, txtWJus_batch)
-
-elif args.type == "url":
-    convert_to_batch_jsonl(folder, input_file, url_batch, "url")
-    batch_id["url_batch_id"] = process_batch_job(client, url_batch)
-
-elif args.type == "text_noJustification":
-    convert_to_batch_jsonl(folder, input_file, txtNoJus_batch, "text_noJustification")
-    batch_id["txtNoJust_batch_id"] = process_batch_job(client, txtNoJus_batch)
-
-elif args.type == "text_wJustification":
-    convert_to_batch_jsonl(folder, input_file, txtWJus_batch, "text_wJustification")
-    batch_id["txtWJus_batch_id"] = process_batch_job(client, txtWJus_batch)
-
-
-print("submitted batch id:", batch_id)
-batch_ids[datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")] = batch_id
-with open(batch_id_file, 'w') as f:
-    json.dump(batch_ids, f)
-
-
-
+if __name__ == "__main__":
+    main()
