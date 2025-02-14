@@ -52,7 +52,7 @@ class Splitter:
         
         all_evidence = {}
         
-        for qn in tqdm(data, desc="Storing splitted results"):
+        for qn in tqdm(data, desc="Splitting evidence"):
             for evidence in qn['evidence_url']:
                 evidence_id = evidence['evidence_id']
                 evidence_url = evidence['original_link']
@@ -139,7 +139,7 @@ def main():
 
     args = parse_args()
     results_folder = f'./results'
-    if os.path.exists(results_folder):
+    if not os.path.exists(results_folder):
         os.mkdir(results_folder)
 
     nltk.download('punkt_tab')

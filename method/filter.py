@@ -1,4 +1,4 @@
-from UncertainQA.utils import extract_domain
+from utils import extract_domain
 
 def filter_results(retrieved_results, all_credibility_data, mbfc_credibility_data, media_data = 'all'):
     revised_retrieved_results = []

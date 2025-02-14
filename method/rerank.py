@@ -5,17 +5,15 @@ from typing import List, Dict, Any
 import numpy as np
 from tqdm import tqdm
 import pickle as pkl
-import re
 import statistics
 import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, AutoModel
 from typing import List, Dict, Any
 import numpy as np
-import json
 import os
-from UncertainQA.config import parse_args
-from UncertainQA.utils import extract_domain, load_pkl
+from config import parse_args
+from utils import extract_domain, load_pkl
 
     
 # Define the MediaCredibilityPredictor class
@@ -203,17 +201,16 @@ def main():
     # Load data and model
     all_credibility_data = load_pkl("../data/dataset/all_media_data.pkl")
     mbfc_credibility_data = load_pkl("../data/dataset/mbfc_media_data.pkl")
-    retrieved_results = load_pkl(f'./results/top{args.n}_retrieved_{args.type}.pkl')
+    retrieved_results = load_pkl(f'../results/top{args.n}_retrieved_{args.type}.pkl')
 
     model_path = args.rerank_model_path
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model, tokenizer = load_model(model_path, device)
 
-
     # Rerank evidence
     reranked_results = rerank_evidence(retrieved_results, all_credibility_data, mbfc_credibility_data, model, tokenizer, device, batch_size=256, media_data = args.media_data)
 
-    results_folder = f'./results/results_{args.media_data}_media'
+    results_folder = f'../results/results_{args.media_data}_media'
     if os.path.exists(results_folder):
         os.mkdir(results_folder)
 
@@ -221,7 +218,6 @@ def main():
     with open(results_file, "wb") as f:
         pkl.dump(reranked_results, f)
     
-
 if __name__ == "__main__":
     main()
  

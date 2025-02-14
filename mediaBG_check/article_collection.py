@@ -2,8 +2,9 @@ import logging
 from feedsearch import search
 import feedparser
 from goose3 import Goose
-from UncertainQA.utils import load_pkl
+from utils import load_pkl
 import pickle as pkl
+from tdqm import tqdm
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -79,3 +80,20 @@ def collect_article_info(domain, article_info_file):
     pkl.dump(all_article_info, open(article_info_file, "wb")) #update the file with newly extracted info
 
     return article_info
+
+if __name__=="__main__":
+    domain_list = []
+
+    with open('/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/media_to_generate.txt', 'r') as f:
+        for line in f:
+            item = line.strip()
+            domain_list.append(item)
+
+    article_info_file = "/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/article_info.pkl"
+
+    from utils import initialize_pkl_file
+    initialize_pkl_file(article_info_file)
+
+    for domain in tqdm(domain_list):
+        collect_article_info(domain, article_info_file)
+

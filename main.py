@@ -1,4 +1,3 @@
-import logging
 import re
 import nltk
 import os
@@ -8,22 +7,8 @@ from inference import save_results
 from method.prompt_processor import PromptProcessor
 from utils import load_gzip, load_pkl, set_seed, log_hyperpara
 
+
 nltk.download('punkt_tab')
-
-for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("logfile.log"),    
-        logging.StreamHandler()               
-    ]
-)
-
-main_logger = logging.getLogger('__name__')
-
 
 def keep_top_n_evidence(retrieved_results, n):
     for qn_entity in retrieved_results:
@@ -43,7 +28,9 @@ def extract_domain(url):
 
 
 def Augment_w_Media(retrieved_results, all_credibility_data, mbfc_credibility_data, media_data = 'all'):
-
+    available_media = 0
+    unavailable_media = 0
+    curated_media = 0
     for qn_entity in retrieved_results:
         for sentence_entity in qn_entity["top_k"]:
             domain = extract_domain(sentence_entity['original_link'])
@@ -74,12 +61,11 @@ def Augment_w_Media(retrieved_results, all_credibility_data, mbfc_credibility_da
 def main():
 
     args = parse_args()
-    log_hyperpara(args)
 
     set_seed(args.seed)
 
     results_folder = f'./results/results_{args.media_data}_media'
-    if os.path.exists(results_folder):
+    if not os.path.exists(results_folder):
         os.mkdir(results_folder)
 
     qns_entities = load_gzip(args.source)
@@ -95,7 +81,9 @@ def main():
         args.with_MediaBG = False
         print("MediaBG not in use")
 
-    file_name = f"Top_{args.k}_{args.method}_MediaBD_{args.with_MediaBG}_model_{model_name}"
+    log_hyperpara(args)
+
+    file_name = f"Top_{args.k}_{args.type}_{args.method}_MediaBD_{args.with_MediaBG}_model_{model_name}"
     print(file_name)
 
     inference_result_file = os.path.join(results_folder, f"{file_name}_inference.txt")
@@ -111,7 +99,7 @@ def main():
 
         prompts = prompt_generator.generate_prompts(retrieved_results)
 
-        engine = InferenceEngine()
+        engine = InferenceEngine(args.model, args.seed, args.gpu)
 
         predictions = engine.infer(
             prompts = prompts, 
@@ -160,7 +148,7 @@ def main():
 
         prompts = prompt_generator.generate_prompts(processed_results)
     
-        engine = InferenceEngine()
+        engine = InferenceEngine(args.model, args.seed, args.gpu)
 
         predictions = engine.infer(
             prompts = prompts, 
@@ -169,7 +157,7 @@ def main():
 
 
     elif args.method == 'MajorityVoting':
-
+        from method.majority_voting import analysis_preprocess
         from method.majority_voting import analyze_sentences
         from method.majority_voting import majority_voting
 
@@ -177,7 +165,7 @@ def main():
 
         qns, sentences, media_backgrounds = analysis_preprocess(retrieved_results)
         
-        analysis_result_file = os.path.join(results_folder, "analysis.txt")
+        analysis_result_file = os.path.join(results_folder, f"Top_{args.k}_{args.type}_MajorityVoting_analysis.txt")
         analysis_results = analyze_sentences(qns, 
                                              sentences, 
                                              with_MediaBG = args.with_MediaBG, media_backgrounds = media_backgrounds,  output_file = analysis_result_file)

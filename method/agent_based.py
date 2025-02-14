@@ -1,7 +1,7 @@
 from typing import List, Dict
 import vllm
 from collections import defaultdict
-from UncertainQA.config import parse_args
+from config import parse_args
 import time
 import torch
 from vllm import SamplingParams
@@ -12,7 +12,7 @@ args = parse_args()
 
 sampling_params = SamplingParams(temperature=0.90, top_p=0.9, max_tokens = 4000, seed=args.seed, stop = '*** END')
 
-LLM = vllm.LLM(model=args.model, tensor_parallel_size=args.gpu, gpu_memory_utilization=0.85,trust_remote_code=True)
+LLM = vllm.LLM(model=args.model, tensor_parallel_size=args.gpu, gpu_memory_utilization=0.9,trust_remote_code=True)
 
 
 prompt_summary_analysis = """
@@ -147,7 +147,7 @@ def generate_analysis_prompt(question: str, sentence: str, media_background: str
 
 
 # 输入是 n 个 claim，每个 claim 对应多个 sentences 和 media background
-def analyze_sentences(questions: List[str], sentences: List[List[str]], media_backgrounds: List[List[str]], output_file = "./results/analysis.txt") -> List[List[str]]:
+def analyze_sentences(questions: List[str], sentences: List[List[str]], media_backgrounds: List[List[str]]) -> List[List[str]]:
     analysis_inputs = []
     for i in range(len(questions)):
         question = questions[i]
@@ -162,14 +162,6 @@ def analyze_sentences(questions: List[str], sentences: List[List[str]], media_ba
 
     # 使用 response_batch 函数生成批量输出
     flat_analysis_results = response_batch(analysis_inputs,set_max_tokens = 500)
-
-    for idx, result in enumerate(flat_analysis_results):
-        with open("./results/analysis.txt", "a", encoding='utf-8') as f:
-            data = f"prompt: {analysis_inputs[idx]}\n\n"
-            data += f"output: {result}\n\n"
-            data += "\n\n---------------------------------\n\n"
-            f.write(data + "\n\n")
-    
 
     reshaped_analysis_results = []
     index = 0
@@ -234,7 +226,7 @@ def categorize_sentences(questions: List[str], sentences: List[List[str]], media
     return categorized_results
 
 # 使用 LLM 总结支持和反对的证据，并给出最后判断
-def summarize_questions_llm(categorized_results: List[Dict[str, List[str]]], output_file = './results/results.txt') -> List[str]:
+def summarize_questions_llm(categorized_results: List[Dict[str, List[str]]]) -> List[str]:
 
     summary_inputs = []
     for result in categorized_results:
@@ -280,38 +272,15 @@ def summarize_questions_llm(categorized_results: List[Dict[str, List[str]]], out
     # 使用 LLM 生成总结和最终判断
     summaries = response_batch(summary_inputs, set_max_tokens = 5000)
 
-    for idx, result in enumerate(summaries):
-        with open(output_file, "a", encoding='utf-8') as f:
-            data = f"prompt: {summary_inputs[idx]}\n\n"
-            data += f"output: {result}\n\n"
-            data += "\n\n---------------------------------\n\n"
-            f.write(data + "\n\n")
-
     return summaries
 
 # 进一步处理 questions 和 sentences
-def process_questions(questions, sentences, media_backgrounds, output_file = "./results/MediaTrue_AgentBased_inference.txt") -> List[str]:
-
-    start_time = time.time()
-    # Get the CUDA device being used
-    if torch.cuda.is_available():
-        cuda_device_id = torch.cuda.current_device()
-        cuda_device_name = torch.cuda.get_device_name(cuda_device_id)
-        cuda_info = f"CUDA Device ID: {cuda_device_id}, Device Name: {cuda_device_name}"
-    else:
-        cuda_info = "No CUDA device available"
+def process_questions(questions, sentences, media_backgrounds, output_file) -> List[str]:
 
     analysis_results = analyze_sentences(questions, sentences, media_backgrounds)
     torch.cuda.empty_cache()
     categorized_results = categorize_sentences(questions, sentences, media_backgrounds, analysis_results)
     summaries = summarize_questions_llm(categorized_results)
-
-    end_time = time.time()
-    duration = end_time - start_time
-    duration_message = f"Inference completed in {duration:.2f} seconds.\n"
-    duration_message += f"CUDA Device: {cuda_info}\n"
-    with open("runtime_tracking.txt", "a") as f:
-        f.write(duration_message)
 
     final_answers = []
     for idx, output in enumerate(summaries):

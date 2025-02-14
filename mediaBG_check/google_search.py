@@ -131,3 +131,25 @@ class GoogleSearch:
 
         return self.all_scraped_text[source_name]
 
+
+if __name__=='__main__':
+    domain_list = []
+
+    with open('/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/media_to_generate.txt', 'r') as f:
+        for line in f:
+            item = line.strip()
+            domain_list.append(item)
+
+    query_file = "/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/google_queries.json"
+    all_evidence_url_file = "/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/google_evidence_urls.pkl"
+    all_scraped_text_file = "/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/google_evidence_text.pkl"
+
+    from utils import initialize_pkl_file
+    files = [all_evidence_url_file, all_scraped_text_file]
+
+    for file in files:
+        initialize_pkl_file(file)
+
+    for domain in domain_list:
+        google_search = GoogleSearch(query_file, all_evidence_url_file, all_scraped_text_file)
+        google_evidence = google_search.google_search(domain)

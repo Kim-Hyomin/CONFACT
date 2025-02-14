@@ -62,10 +62,16 @@ python data/batch_retrieve_results.py --source claimWevidence.json --folder batc
 The retrieved responses will be saved in the specified folder, organized under the provided submission details.
 
 ## Generate Media Description and Predict Credibility Label
+To get prepared for media background check, collect information using the following information:
+
+```bash
+cd mediaBG_check & python article_collection.py & python wiki_collection.py & python google_search.py
+```
+
 To generate the media description and predict the credibility label, run the following command:
 
 ```bash
-python mediaBG_check/main.py --model meta-llama/Llama-3.1-8B-Instruct --gpu 2
+python main.py --model meta-llama/Llama-3.1-8B-Instruct --gpu 2
 ```
 
 ## RAG
@@ -74,12 +80,12 @@ python mediaBG_check/main.py --model meta-llama/Llama-3.1-8B-Instruct --gpu 2
 Use the following command to preprocess questions and split the corresponding evidence into sentences or chunks. The processed and retrieved evidence will be stored in the `results` folder:
 
 ```bash
-python preprocess.py --source ../data/dataset/MUQA.pkl --k 100 --type chunk --chunk_size 256
+python preprocess.py --source data/dataset/ModC.pkl.gz --k 100 --type chunk --chunk_size 256
 ```
 
 If using reranking method, continue processing the dataset using the following command:
 ```bash
-python method/rerank.py --n 100 --type chunks --media_data all
+cd method & python rerank.py --n 100 --type chunks --media_data all
 ```
 
 ### Prediction
@@ -95,8 +101,8 @@ python main.py --method "${method}" --k "${k}" --with_MediaBG "${media}" --model
 Results will be saved in the results folder (e.g., ``./results/results_mbfc_media`` or ``./results/results_all_media``).
 
 ### Evaluation of Results
-To evaluate the outcomes (precision, recall, F1 score, etc.), run the following command:
+To evaluate the outcomes (precision, recall, F1 score, etc.), run the following command to get the evaluation metrics within the specific folder:
 
 ```bash
-python eval.py --prediction './results/results_mbfc_media/Top_5_AgentBased_MediaBD_true_model_Llama-3.1-8B-Instruct.json'
+python eval.py --folder './results/results_all_media'
 ```

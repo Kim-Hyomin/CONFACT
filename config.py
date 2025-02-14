@@ -15,7 +15,7 @@ def parse_args():
                         help="GPU device number to use.")
     
     # preprocess
-    parser.add_argument("--source", default= "./data/dataset/MUQA.pkl.gz", type=str, help="Queries and evidence to run the RAG experiment on")
+    parser.add_argument("--source", default= "./data/dataset/ModC.pkl.gz", type=str, help="Queries and evidence to run the RAG experiment on")
 
     parser.add_argument("--n", type=int, default=100, help="number of pieces of evidence to retrieve for each question")
 

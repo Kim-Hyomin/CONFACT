@@ -1,91 +1,16 @@
 import re
 import vllm
 from vllm import SamplingParams
-from UncertainQA.config import parse_args
-from sklearn.metrics import precision_score, recall_score, f1_score
+from config import parse_args
+from utils import extract_domain
 
 args = parse_args()
 
-sampling_params = SamplingParams(temperature=0.90, top_p=0.9, max_tokens = 5000, seed=args.seed, stop = '*** END')
-
 LLM = vllm.LLM(model=args.model, tensor_parallel_size=args.gpu, gpu_memory_utilization=0.9)
 
-def evaluate(ground_truth, result):
-   
-    em = 0  # Exact Match for Accuracy
-    true_positive = 0
-    false_positive = 0
-    false_negative = 0
 
-    # Initialize for precision, recall, and F1
-    all_predictions = []
-    all_ground_truth = []
-
-    # Iterate over predictions and ground truth
-    for idx, prediction in enumerate(result):
-        predicted_answer = prediction
-        actual_answer = ground_truth[idx]
-
-        # Convert 'yes'/'no' to 1/0
-        if 'yes' in actual_answer.lower():
-            actual_answer_bin = 1
-        elif 'no' in actual_answer.lower():
-            actual_answer_bin = 0
-        else:
-            print("assuming actual is 'yes' or 'no'", actual_answer)
-            print(actual_answer)
-            continue
-
-        # Convert predicted answer to 1/0 (ignoring case)
-        if 'yes' in predicted_answer.lower():
-            predicted_answer_bin = 1
-        elif 'no' in predicted_answer.lower():
-            predicted_answer_bin = 0
-        else:
-            print("assuming prediction is 'yes' or 'no'", predicted_answer)
-            print(predicted_answer)
-            continue
-
-        
-        # Exact Match (EM)
-        if actual_answer_bin == predicted_answer_bin:
-            em += 1
-
-        # Precision and Recall metrics
-        if actual_answer_bin == predicted_answer_bin:
-            true_positive += 1
-        else:
-            if predicted_answer_bin == 1:  # If predicted answer is 'yes' but wrong
-                false_positive += 1
-            if actual_answer_bin == 1:  # If actual answer is 'yes' but predicted is wrong
-                false_negative += 1
-
-        # Collect for overall metrics
-        all_predictions.append(predicted_answer_bin)
-        all_ground_truth.append(actual_answer_bin)
-
-    # Accuracy (ACC)
-    acc = em / len(result)
-
-    # Precision, Recall, F1
-    precision = precision_score(all_ground_truth, all_predictions, average='binary', zero_division=0)
-    recall = recall_score(all_ground_truth, all_predictions, average='binary', zero_division=0)
-    f1 = f1_score(all_ground_truth, all_predictions, average='binary', zero_division=0)
-
-    # Return all metrics
-    return acc, precision, recall, f1
-
-def extract_domain(url):
-    if url:
-        domain_pattern = r'https?://(?:www\.)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-        match = re.search(domain_pattern, url)
-        if match:
-            domain = match.group(1)
-            return domain
-
-    return url  
-
-def response_batch(input_texts):
+def response_batch(input_texts, set_max_tokens = 5000):
+    sampling_params = SamplingParams(temperature=0.90, top_p=0.9, max_tokens = set_max_tokens, seed=args.seed, stop = '*** END')
 
     outputs = LLM.generate(input_texts, sampling_params)
 
@@ -219,7 +144,7 @@ def analyze_sentences(questions, sentences, with_MediaBG, media_backgrounds, out
                 analysis_input = generate_analysis_prompt_noBG(question, sentence)
                 analysis_inputs.append(analysis_input)
 
-    flat_analysis_results = response_batch(analysis_inputs,set_max_tokens = 2000)
+    flat_analysis_results = response_batch(analysis_inputs, set_max_tokens = 2000)
 
     for idx, result in enumerate(flat_analysis_results):
         with open(output_file, "a", encoding='utf-8') as f:
@@ -272,7 +197,8 @@ def majority_voting(analysis_results):
             elif "no" in verdict.lower():
                 count_refute += 1
             else:
-                print("no conclusion")
+                continue
+                # print("no conclusion")
         verdict = 'yes' if count_support > count_refute else 'no'
         results.append(verdict)
           

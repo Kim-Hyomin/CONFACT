@@ -5,13 +5,14 @@ from typing import List
 import argparse
 from sklearn.metrics import precision_score, recall_score, f1_score
 from utils import load_json
+import glob
 
 def label_mapping(source_data):
     label_mapping = {
             "Supported": "yes",
             "Refuted": "no",
         }
-    return [label_mapping.get(entity['label'].strip(), "unsure") for entity in source_data]
+    return [label_mapping.get(entity['ground_truth'].strip(), "unsure") for entity in source_data]
 
 def extract_predictions(source_data):
     return [entity['prediction'] for entity in source_data]
@@ -84,17 +85,15 @@ class EvaluationEngine:
         recall = recall_score(all_ground_truth, all_predictions, average='binary', zero_division=0)
         f1 = f1_score(all_ground_truth, all_predictions, average='binary', zero_division=0)
 
-        print("number of 0s in predictions", all_predictions.count(0))
-        print("number of 1s in predictions", all_predictions.count(1))
-        print("number of 0s in ground truths", all_ground_truth.count(0))
-        print("number of 1s in ground truths", all_ground_truth.count(1))
-
-        return acc, precision, recall, f1
+        weighted_f1 = f1_score(all_ground_truth, all_predictions, average='weighted', zero_division=0)
+        macro_f1 = f1_score(all_ground_truth, all_predictions, average='macro', zero_division=0)
+    
+        return acc, precision, recall, f1, weighted_f1, macro_f1
 
 
     def evaluate_and_log(
         self, 
-        acc: float, precision: float, recall: float, f1: float, 
+        acc: float, precision: float, recall: float, f1: float, weighted_f1: float, macro_f1: float,
         file_name: str, 
         csv_file: str
     ):
@@ -107,33 +106,36 @@ class EvaluationEngine:
             writer = csv.writer(f)
             # If file is new, write the header
             if not file_exists:
-                writer.writerow(['file_name', 'accuracy', 'precision', 'recall', 'f1_score'])
-            writer.writerow([file_name, acc, precision, recall, f1])
+                writer.writerow(['file_name', 'accuracy', 'precision', 'recall', 'f1_score', 'weighted_f1', 'macro_f1'])
+            writer.writerow([file_name, acc, precision, recall, f1, weighted_f1, macro_f1])
 
 def main():
 
     parser = argparse.ArgumentParser(description="Evaluation of results")
-    parser.add_argument("--prediction", type=str, default= './results/results_mbfc_media/Top_5_AgentBased_MediaBD_true_model_Llama-3.1-8B-Instruct.json', help="path to the results")
-
+    parser.add_argument("--folder", type=str, default= './results/results_all_media', help="path to the results folder")
     args = parser.parse_args()
 
-    results = load_json(args.prediction)
+    folder_path = args.folder
+    results_files = glob.glob(f"{folder_path}/*.json")
 
-    ground_truths = label_mapping(results)
-    predictions = extract_predictions(results)
+    for result_file in results_files:
 
-    eval_engine = EvaluationEngine()
-    acc, precision, recall, f1 = eval_engine.evaluate(predictions, ground_truths)
-    
-    file_name = os.path.basename(args.prediction)
-    results_folder = os.path.dirname(args.prediction)
+        results = load_json(result_file)
 
-    eval_engine.evaluate_and_log(
-        acc, precision, recall, f1,
-        file_name = file_name,
-        csv_file = os.path.join(results_folder,'evaluation_results.csv')
-    )
+        ground_truths = label_mapping(results)
+        predictions = extract_predictions(results)
 
-    
+        eval_engine = EvaluationEngine()
+        acc, precision, recall, f1, weighted_f1, macro_f1 = eval_engine.evaluate(predictions, ground_truths)
+        
+        file_name = os.path.basename(result_file)
+
+        eval_engine.evaluate_and_log(
+            acc, precision, recall, f1, weighted_f1, macro_f1,
+            file_name = file_name,
+            csv_file = os.path.join(folder_path,'evaluation_results.csv')
+        )
+        
 if __name__ == "__main__":
     main()
+

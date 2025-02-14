@@ -66,8 +66,3 @@ def initialize_pkl_file(filepath):
             pkl.dump({}, f)
     return
     
-init_guess_sys_prompt = "You are InfoHuntGPT, a world-class AI assistant used by journalists to quickly build knowledge of new sources."
-
-sys_msg="You are InfoHuntGPT, a world-class AI assistant used by journalists to quickly predict the credibility of new sources. You need to categorize the credibility of a source into: high, medium or low, based on provided information (e.g., articles, wiki information, description of the media source)."
-
-answer_sys_prompt = "Please provide an answer in a sentence to the question: %s, based on provided evidence.\nEvidence:%s\n\nBegin your response with Answer:"

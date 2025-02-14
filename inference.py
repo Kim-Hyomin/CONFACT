@@ -4,15 +4,7 @@ import re
 import json
 import vllm
 from vllm import SamplingParams
-from config import parse_args
 from utils import write_to_file, clean_text
-
-args = parse_args()
-
-sampling_params = SamplingParams(temperature=0.90, top_p=0.9, max_tokens=1000, seed=args.seed, stop = '*** END')
-
-LLM = vllm.LLM(model=args.model, tensor_parallel_size=args.gpu, gpu_memory_utilization=0.9,trust_remote_code=True)
-
 
 def save_results(qns, predictions, output_file):
     results = []
@@ -28,27 +20,17 @@ def save_results(qns, predictions, output_file):
     return 
 
 class InferenceEngine:
-    def __init__(self):
-        # main_logger.info("Inference Engine initialized")
+    def __init__(self, model, seed, gpu):
+
+        sampling_params = SamplingParams(temperature=0.90, top_p=0.9, max_tokens=1000, seed=seed, stop = '*** END')
+        LLM = vllm.LLM(model=model, tensor_parallel_size=gpu, gpu_memory_utilization=0.9,trust_remote_code=True)
+
         self.LLM = LLM
         self.sampling_params = sampling_params
         self.predictions = []
 
     def infer(self, prompts, method, output_file):
 
-        start_time = time.time()
-        # Get the CUDA device being used
-        if torch.cuda.is_available():
-            cuda_device_id = torch.cuda.current_device()
-            cuda_device_name = torch.cuda.get_device_name(cuda_device_id)
-            cuda_info = f"CUDA Device ID: {cuda_device_id}, Device Name: {cuda_device_name}"
-        else:
-            cuda_info = "No CUDA device available"
-
-        # main_logger.info(f"Using {cuda_info}")
-
-        # main_logger.info(f"Running inference on {len(prompts)} prompts")
-        
         outputs = self.LLM.generate(prompts, self.sampling_params)
 
         if method == "DirectAnswer":
@@ -77,12 +59,5 @@ class InferenceEngine:
                 results += f"output: {result}\n"
                 results += "\n\n-----------------------------------------------------\n\n"
                 write_to_file(output_file, results)
-
-        end_time = time.time()
-        duration = end_time - start_time
-        duration_message = f"Inference completed in {duration:.2f} seconds.\n"
-        duration_message += f"CUDA Device: {cuda_info}\n"
-        with open("runtime_tracking.txt", "a") as f:
-            f.write(duration_message)
 
         return self.predictions
