@@ -1,3 +1,5 @@
+import sys
+sys.path.append("..")
 from utils import extract_domain
 
 def filter_results(retrieved_results, all_credibility_data, mbfc_credibility_data, media_data = 'all'):

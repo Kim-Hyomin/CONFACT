@@ -11,6 +11,8 @@ import torch
 import numpy as np
 from dotenv import load_dotenv
 import argparse
+import sys
+sys.path.append("..")
 from utils import initialize_pkl_file, load_pkl, load_gzip, extract_domain, set_seed
 from media_check import MediaCheck
 

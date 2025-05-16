@@ -2,6 +2,8 @@ import wikipediaapi
 import logging
 import pickle as pkl
 from tqdm import tqdm
+import sys
+sys.path.append("..")
 from utils import load_pkl
 
 logging.basicConfig(level=logging.INFO)
@@ -39,12 +41,12 @@ def extract_wiki_info(domain_name, wiki_info_file):
 if __name__ == '__main__':
     domain_list = []
 
-    with open('/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/media_to_generate.txt', 'r') as f:
+    with open('media_bg_collected/media_to_generate.txt', 'r') as f:
         for line in f:
             item = line.strip()
             domain_list.append(item)
 
-    wiki_info_file = "/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/wiki_info.pkl"
+    wiki_info_file = "media_bg_collected/wiki_info.pkl"
 
     from utils import initialize_pkl_file
     initialize_pkl_file(wiki_info_file)

@@ -1,4 +1,5 @@
-# UncertainQA
+# CONFACT
+This repository maintains the dataset and implementation for the experiments described in our paper: Resolving Conflicting Evidence in Automated Fact-Checking: A Study on Retrieval-Augmented LLMs
 
 ## Data Format
 The dataset consists of a list of JSON objects.
@@ -24,42 +25,8 @@ The dataset consists of a list of JSON objects.
   }
 ]
 ```
+## Requirements
 
-## Dataset Construction
-### Searching for Evidence on Google
-
-To search for evidence corresponding to a set of claims, use the following command:
-
-```bash
-python data/google_search.py --input dataset/averitec_data.csv --type Averitec --output dataset/claimWevidence.json
-```
-
-### Scraping Web Page Content
-After collecting the URLs, scrape the content of the web pages using this command:
-
-```bash
-python data/web_scraping.py --input dataset/claimWevidence.json --output dataset/claimWevidence_txt.json
-```
-
-### GPT Annotation for Evidence Analysis
-#### Labeling Evidence with GPT-4o
-To identify conflicting evidence, GPT-4o is used for the first round of filtering. The agent labels each piece of evidence as supporting or refuting the claim.
-
-To reduce costs, the batch API is used for sending requests:
-
-```bash
-python data/batch_submit.py --input claimWevidence.json --type majority_vote
-```
-A folder named in the format ``batch_submissionYYYY-MM-DD_HH_MM`` is created to record the submission ID and store related data.
-
-#### Retrieving Results from GPT-4
-To retrieve the sent results of GPT-4o processing, use the following command:
-
-```bash
-python data/batch_retrieve_results.py --source claimWevidence.json --folder batch_submission2024-12-01_04_12 --submission_time "2024-12-01-04-12"
-```
-
-The retrieved responses will be saved in the specified folder, organized under the provided submission details.
 
 ## Generate Media Description and Predict Credibility Label
 To get prepared for media background check, collect information using the following information:

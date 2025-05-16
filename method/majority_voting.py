@@ -2,6 +2,8 @@ import re
 import vllm
 from vllm import SamplingParams
 from config import parse_args
+import sys
+sys.path.append("..")
 from utils import extract_domain
 
 args = parse_args()

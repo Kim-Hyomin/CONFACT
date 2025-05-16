@@ -1,7 +1,8 @@
 import logging
 import re
-import random
 from tqdm import tqdm
+import sys
+sys.path.append("..")
 from utils import load_pkl, load_json
 from utils import clean_text, extract_domain, load_gzip
 from prompts import sys_msg, init_guess_sys_prompt, answer_sys_prompt, requirements, update_description_msg

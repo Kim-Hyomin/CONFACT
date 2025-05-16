@@ -13,6 +13,8 @@ from typing import List, Dict, Any
 import numpy as np
 import os
 from config import parse_args
+import sys
+sys.path.append("..")
 from utils import extract_domain, load_pkl
 
     
@@ -40,13 +42,11 @@ class MediaCredibilityPredictor(nn.Module):
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         outputs = self.roberta(input_ids=input_ids, attention_mask=attention_mask)
         
-        # 使用 last_hidden_state 作为句子表示
+        # use last_hidden_state as representation
         last_hidden_state = outputs.last_hidden_state
         
-        # 获取 [CLS] token 的表示（即第一列）
         cls_embedding = last_hidden_state[:, 0]
         
-        # 经过 Dropout 和回归层得到预测结果
         pooled_output = self.dropout(cls_embedding)
         prediction = self.regressor(pooled_output)   
         return prediction

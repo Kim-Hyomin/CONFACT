@@ -256,11 +256,9 @@ def train_model_from_csv(csv_file: str, num_epochs: int = 3, batch_size: int = 1
 
 
 if __name__ == "__main__":
-    # 设定CSV文件路径
+
     csv_file = "mfbc_media_desc.csv"
     
-    # 模型保存目录
     model_save_dir = "/home/yuhao/UncertainQA/Rerank_train/Save_model"
     
-    # 开始训练
     trained_model = train_model_from_csv(csv_file, num_epochs=5, model_dir=model_save_dir, distributed=False)

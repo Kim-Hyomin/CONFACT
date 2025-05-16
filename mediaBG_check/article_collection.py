@@ -1,3 +1,5 @@
+import sys
+sys.path.append("..")
 import logging
 from feedsearch import search
 import feedparser
@@ -84,12 +86,12 @@ def collect_article_info(domain, article_info_file):
 if __name__=="__main__":
     domain_list = []
 
-    with open('/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/media_to_generate.txt', 'r') as f:
+    with open('media_bg_collected/media_to_generate.txt', 'r') as f:
         for line in f:
             item = line.strip()
             domain_list.append(item)
 
-    article_info_file = "/Users/ziyuge/Desktop/UncertainQA/mediaBG_check/media_bg_collected/article_info.pkl"
+    article_info_file = "media_bg_collected/article_info.pkl"
 
     from utils import initialize_pkl_file
     initialize_pkl_file(article_info_file)
