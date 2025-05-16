@@ -19,7 +19,7 @@ from media_check import MediaCheck
 load_dotenv()
 
 logger = logging.getLogger('media_check')
-def generate_description():
+def generate_mediaBG():
 
     parser = argparse.ArgumentParser(description="Run Media Background Check")
     parser.add_argument("--seed", type=int, default = 2024, help="seed")
@@ -79,4 +79,4 @@ def generate_description():
         pkl.dump(media_checker.credibility_data, f) # save updated credibility data
 
 if __name__ == "__main__":
-    generate_description()
+    generate_mediaBG()
