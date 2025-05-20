@@ -28,7 +28,7 @@ def parse_args():
 
     parser.add_argument("--with_MediaBG", type=str, choices=['true', 'false'], default='false', help="Whether to consider Media Background")
 
-    parser.add_argument("--method", type=str, choices=["DirectAnswer", "DiscernAndAnswer", "ExplainAndAnswer", "MajorityVoting","AgentBased", "Filter", "RerankSoft", "RerankHard"], default="DirectAnswer", help="processing method")
+    parser.add_argument("--method", type=str, choices=["DirectAnswer", "Explain", "CoT", "MajorityVoting","AgentBased", "Filter", "RerankSoft", "RerankHard"], default="DirectAnswer", help="processing method")
 
     parser.add_argument("--media_data", type=str, choices=['mbfc', 'all'], default='all', help="Whether to consider media credibility from mbfc dataset only")
 

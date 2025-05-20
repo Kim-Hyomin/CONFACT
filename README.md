@@ -61,7 +61,7 @@ To run experiments using different methods, use the following command:
 ```bash
 python main.py --method "${method}" --k "${k}" --with_MediaBG "${media}" --model "${model}" --gpu 2 --media_data all
 ```
-- **method**: Choose from ["DirectAnswer", "DiscernAndAnswer", "ExplainAndAnswer", "MajorityVoting", "AgentBased", "Filter", "RerankSoft", "RerankHard"].
+- **method**: Choose from ["DirectAnswer", "Explain", "CoT", "MajorityVoting", "AgentBased", "Filter", "RerankSoft", "RerankHard"].
 - **with_MediaBG**: Specify whether to use media background knowledge when evaluating the evidence.
 - **media_data**: Choose from ["mbfc", "all"]. This determines whether to use only MBFC information (mbfc) or all available information (both MBFC data and generated media background data).
 

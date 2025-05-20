@@ -88,7 +88,7 @@ def main():
 
     inference_result_file = os.path.join(results_folder, f"{file_name}_inference.txt")
 
-    if args.method in ["DirectAnswer", "DiscernAndAnswer", "ExplainAndAnswer"]:
+    if args.method in ["DirectAnswer", "Explain", "CoT"]:
 
         retrieved_results = keep_top_n_evidence(retrieved_results, args.k)
         retrieved_results = Augment_w_Media(retrieved_results, all_credibility_data, mbfc_credibility_data, media_data = args.media_data)

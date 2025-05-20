@@ -44,7 +44,7 @@ class InferenceEngine:
                 results += "\n\n-----------------------------------------------------\n\n"
                 write_to_file(output_file, results)
         
-        elif method == "DiscernAndAnswer" or method == 'ExplainAndAnswer':
+        elif method == "Explain" or method == 'CoT':
             for idx, output in enumerate(outputs):
                 result = clean_text(output.outputs[0].text).strip().lower()
                 pattern = r"final answer:\s*(.*)"

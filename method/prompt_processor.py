@@ -17,11 +17,11 @@ class PromptProcessor:
         if self.prompt_type == "DirectAnswer":
             return self._generate_direct_answer_prompt(question, contexts)
 
-        elif self.prompt_type == "DiscernAndAnswer":
-            return self._generate_discern_and_answer_prompt(question, contexts)
+        elif self.prompt_type == "Explain":
+            return self._generate_explain_prompt(question, contexts)
 
-        elif self.prompt_type == "ExplainAndAnswer":
-            return self._generate_explain_and_answer_prompt(question, contexts)
+        elif self.prompt_type == "CoT":
+            return self._generate_CoT_prompt(question, contexts)
 
         else:
             raise ValueError(f"Invalid prompt type: {self.prompt_type}")
@@ -43,7 +43,7 @@ class PromptProcessor:
         return prompt
 
 
-    def _generate_discern_and_answer_prompt(self, question, contexts):
+    def _generate_explain_prompt(self, question, contexts):
 
         prompt = self.initial_prompt
 
@@ -78,7 +78,7 @@ class PromptProcessor:
         return prompt
 
     
-    def _generate_explain_and_answer_prompt(self, question, contexts):
+    def _generate_CoT_prompt(self, question, contexts):
 
         prompt = self.initial_prompt
 
