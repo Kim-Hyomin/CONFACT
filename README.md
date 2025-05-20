@@ -26,7 +26,9 @@ The dataset consists of a list of JSON objects.
 ]
 ```
 ## Requirements
-
+```bash
+pip install -r requirements.txt
+```
 
 ## Generate Media Description and Predict Credibility Label
 To get prepared for media background check, collect information using the following information:
