@@ -1,5 +1,6 @@
 # CONFACT
-This repository maintains the dataset and implementation for the experiments described in our paper: __Resolving Conflicting Evidence in Automated Fact-Checking: A Study on Retrieval-Augmented LLMs__
+This repository maintains the dataset and implementation for the experiments described in our paper: [*Resolving Conflicting Evidence in Automated Fact-Checking: A Study on Retrieval-Augmented LLMs*](https://www.arxiv.org/abs/2505.17762)
+
 
 ## Data Format
 The dataset consists of a list of JSON objects.
