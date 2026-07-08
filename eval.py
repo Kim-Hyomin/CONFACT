@@ -110,31 +110,43 @@ class EvaluationEngine:
             writer.writerow([file_name, acc, precision, recall, f1, weighted_f1, macro_f1])
 
 def main():
-
     parser = argparse.ArgumentParser(description="Evaluation of results")
-    parser.add_argument("--folder", type=str, default= './results/results_all_media', help="path to the results folder")
+    parser.add_argument("--folder", type=str, default='./results/results_all_media', help="path to the results folder")
     args = parser.parse_args()
-
     folder_path = args.folder
+    csv_path = os.path.join(folder_path, 'evaluation_results.csv')
+
+    # 1) 기존 csv를 읽어 file_name을 키로 한 dict으로 (있으면)
+    header = ['file_name', 'accuracy', 'precision', 'recall', 'f1_score', 'weighted_f1', 'macro_f1']
+    rows = {}
+    if os.path.exists(csv_path):
+        with open(csv_path, 'r', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            existing_header = next(reader, None)
+            for r in reader:
+                if r:
+                    rows[r[0]] = r  # file_name을 키로, 있으면 나중 것으로 덮임
+
+    # 2) 이번 폴더의 json들을 평가해 dict을 갱신(upsert)
     results_files = glob.glob(f"{folder_path}/*.json")
-
     for result_file in results_files:
-
         results = load_json(result_file)
-
         ground_truths = label_mapping(results)
         predictions = extract_predictions(results)
-
         eval_engine = EvaluationEngine()
         acc, precision, recall, f1, weighted_f1, macro_f1 = eval_engine.evaluate(predictions, ground_truths)
-        
         file_name = os.path.basename(result_file)
+        rows[file_name] = [file_name, acc, precision, recall, f1, weighted_f1, macro_f1]  # 겹치면 교체, 없으면 추가
 
-        eval_engine.evaluate_and_log(
-            acc, precision, recall, f1, weighted_f1, macro_f1,
-            file_name = file_name,
-            csv_file = os.path.join(folder_path,'evaluation_results.csv')
-        )
+    # 3) 전체를 다시 파일명 순으로 정렬해 한 번에 기록
+    directory = os.path.dirname(csv_path)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory)
+    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        for key in sorted(rows.keys()):
+            writer.writerow(rows[key])
         
 if __name__ == "__main__":
     main()

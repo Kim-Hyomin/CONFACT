@@ -71,7 +71,8 @@ def main():
     qns_entities = load_gzip(args.source)
     all_credibility_data = load_pkl("./data/dataset/all_media_data.pkl")
     mbfc_credibility_data = load_pkl("./data/dataset/mbfc_media_data.pkl")
-    retrieved_results = load_pkl(f'./results/top{args.n}_retrieved_{args.type}.pkl')
+    split_name = os.path.basename(args.source).split('.')[0]  # HumC.pkl.gz -> HumC
+    retrieved_results = load_pkl(f'./results/top{args.n}_retrieved_{args.type}_{split_name}.pkl')
 
     model_name =  args.model.split('/')[-1]
     if args.with_MediaBG.lower() == "true":
@@ -83,7 +84,7 @@ def main():
 
     log_hyperpara(args)
 
-    file_name = f"Top_{args.k}_{args.type}_{args.method}_MediaBD_{args.with_MediaBG}_model_{model_name}"
+    file_name = f"{split_name}_Top_{args.k}_{args.type}_{args.method}_MediaBD_{args.with_MediaBG}_model_{model_name}"
     print(file_name)
 
     inference_result_file = os.path.join(results_folder, f"{file_name}_inference.txt")

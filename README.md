@@ -1,78 +1,154 @@
-# CONFACT
-This repository maintains the dataset and implementation for the experiments described in our paper: [*Resolving Conflicting Evidence in Automated Fact-Checking: A Study on Retrieval-Augmented LLMs*](https://www.arxiv.org/abs/2505.17762)
+# CONFACT + ConflictLoc
 
+Extending **CONFACT** with lightweight, prompt-based **conflict localization** for credibility-aware RAG fact-checking.
 
-## Data Format
-The dataset consists of a list of JSON objects.
-```json
-[
-  {
-    "id": 1,
-    "claim": "Nigeria has an estimated physician-patient ratio of one doctor to every 4,000 to 5,000 patients.",
-    "label": "Supported",
-    "claim_date": "2019-10-10",
-    "review_date": null,
-    "country": "NG",
-    "question": "Does Nigeria have an estimated physician-patient ratio of one doctor to every 4,000 to 5,000 patients?",
-    "original_claim_url": "https://web.archive.org/web/20201217182533/https://www.aljazeera.com/economy/2019/10/2/nigeria-has-a-mental-health-problem",
-    "fact_checking_article": "https://web.archive.org/web/20210127230319/https://africacheck.org/fact-checks/reports/fact-checked-al-jazeeras-claims-about-nigerias-mental-health-problem",
-    "evidence_url": [
-      {
-        "evidence_id": "1_1",
-        "original_link": "https://www.theguardian.com/global-development/2023/aug/14/africa-health-worker-brain-drain-acc#:~:text=In%20Nigeria%2C%20there%20is%20one,for%20about%20every%20254%20people.",
-        "content": "..."
-      }
-    ]
-  }
-]
-```
-## Requirements
+This repository is a fork of [zoeyyes/CONFACT](https://github.com/zoeyyes/CONFACT) (Ge et al., IJCAI 2025). It keeps the original benchmark and pipeline, and adds a prompt-based method that checks *claim–evidence exactness* and *evidence–evidence conflicts* before the credibility-weighted verdict — without any agentic structure or extra training.
+
+---
+
+## What's new in this fork
+
+| Addition | Where | Description |
+|---|---|---|
+| **ConflictLoc prompt methods** | `method/prompt_processor.py`, `config.py`, `main.py` | New single-prompt methods (`ConflictLocSoft`, `ConflictLocEvidence`, `ConflictLocExact`, `ConflictLocClaim`, and a full 4-step `ConflictLoc`) that insert lightweight conflict-localization checks into the SBAexp prompt. Same number of LLM calls as SBAexp (one per claim). |
+| **Robust answer parsing** | `inference.py` | Fixed the `Final Answer` regex so it captures the model's actual verdict (not the prompt text) and handles model-specific phrasings such as `final answer is no.` |
+| **Blackwell-GPU support** | `inference.py`, `env.sh` | Runs on NVIDIA RTX PRO 6000 Blackwell (sm_120) with vLLM 0.17 + torch 2.10+cu128, `enforce_eager`, greedy decoding, and the required NCCL / FlashInfer environment variables. |
+| **Split-safe outputs** | `main.py`, `preprocess.py` | Result and retrieval files now include the split name (`HumC` / `ModC`), so running one split never overwrites the other. |
+| **Unified runner** | `run.sh` | One script to preprocess, run (with optional multi-GPU parallelism across models), and evaluate. |
+| **Evaluation upsert** | `eval.py` | `evaluation_results.csv` now updates existing rows and appends new ones instead of blindly accumulating duplicates. |
+| **Analysis scripts** | `compare.py`, `compare_by_model.py` | Per-method / per-model comparison of Accuracy, Macro-F1, empty-prediction counts, and confusion (no→yes) for quick inspection. |
+
+The original CONFACT README content (data format, media-background generation, reranking) is preserved below.
+
+---
+
+## Setup
+
 ```bash
+# 1. install dependencies
 pip install -r requirements.txt
+
+# 2. (Blackwell GPUs) load the required environment variables each session
+source env.sh
 ```
 
-## Generate Media Description and Predict Credibility Label
-To get prepared for media background check, collect information using the following information:
+`env.sh` sets the environment variables needed to run vLLM on Blackwell (sm_120) hardware:
 
 ```bash
-cd mediaBG_check & python article_collection.py & python wiki_collection.py & python google_search.py
+export FLASHINFER_DISABLE_VERSION_CHECK=1
+export NCCL_P2P_DISABLE=1
+export VLLM_HOST_IP=127.0.0.1
+export NCCL_SOCKET_IFNAME=lo
+export CUDA_VISIBLE_DEVICES=0
 ```
 
-To generate the media description and predict the credibility label, run the following command:
+Gated models (Llama-3.1, Mistral) require a Hugging Face token with access granted:
 
 ```bash
-python main.py --model meta-llama/Llama-3.1-8B-Instruct --gpu 2
+export HF_TOKEN=your_token_here   # do not commit this
 ```
 
-## RAG
-### Preprocess Questions with Evidence
+---
 
-Use the following command to preprocess questions and split the corresponding evidence into sentences or chunks. The processed and retrieved evidence will be stored in the `results` folder:
+## Quick start
+
+The unified runner handles preprocessing, inference, and evaluation.
 
 ```bash
-python preprocess.py --source data/dataset/ModC.pkl.gz --k 100 --type chunk --chunk_size 256
+chmod +x run.sh
+
+# full sweep: 2 splits × 3 models × main methods (models run in parallel across GPUs)
+./run.sh
+
+# a single split, 3 models in parallel
+./run.sh HumC
+
+# a single (split, model)
+./run.sh ModC Qwen2
+
+# one specific combination
+./run.sh HumC Qwen2 ConflictLocSoft
 ```
 
-If using reranking method, continue processing the dataset using the following command:
+Arguments:
+
+- `$1` split: `HumC` | `ModC` (default: both)
+- `$2` model: `Qwen2` | `Llama` | `Mistral` (default: all three, run in parallel)
+- `$3` method: `Explain` (= SBAexp baseline) | `ConflictLocSoft` | `ConflictLocEvidence` | `ConflictLocExact` | `ConflictLocClaim` | `CoT` | `DirectAnswer` | ... (default: `Explain ConflictLocSoft ConflictLocEvidence`)
+
+Results are written to `./results/results_all_media/` with split-prefixed filenames, e.g.
+`HumC_Top_5_chunks_ConflictLocEvidence_MediaBD_True_model_Qwen2-7B-Instruct.json`.
+
+### Manual run (equivalent to what run.sh does internally)
+
 ```bash
-cd method & python rerank.py --n 100 --type chunks --media_data all
+# preprocess a split (creates ./results/top100_retrieved_chunks_<split>.pkl)
+python preprocess.py --source data/dataset/HumC.pkl.gz --n 100 --type chunks --chunk_size 256
+
+# run one method
+python main.py --method ConflictLocEvidence --with_MediaBG true --media_data all \
+  --source data/dataset/HumC.pkl.gz --n 100 --k 5 --type chunks \
+  --model Qwen/Qwen2-7B-Instruct --gpu 1
+
+# evaluate a results folder
+python eval.py --folder ./results/results_all_media
 ```
 
-### Prediction
-To run experiments using different methods, use the following command:
+---
+
+## Methods
+
+Baselines (from the original CONFACT):
+
+- `DirectAnswer`, `CoT` — no credibility information
+- `Explain` with `--with_MediaBG true` — **SBAexp**, the strongest baseline and the direct comparison target
+
+ConflictLoc (this fork):
+
+- `ConflictLocEvidence` — evidence–evidence conflict check only *(most robust; highest Macro-F1 in our experiments)*
+- `ConflictLocSoft` — exact-match + evidence-conflict check, softened to avoid over-correction *(best Accuracy)*
+- `ConflictLocExact` / `ConflictLocClaim` — single-element ablations
+- `ConflictLoc` — full 4-step version *(kept for ablation; underperforms due to reasoning overload)*
+
+All ConflictLoc methods keep the SBAexp prompt and add only short checking instructions, so they use the same one-call-per-claim budget as SBAexp.
+
+---
+
+## Analysis
 
 ```bash
-python main.py --method "${method}" --k "${k}" --with_MediaBG "${media}" --model "${model}" --gpu 2 --media_data all
+# per-method summary (Acc, Macro-F1, empty count, no->yes bias)
+python compare.py
+
+# grouped by model, comparing SBAexp vs ConflictLoc variants
+python compare_by_model.py
 ```
-- **method**: Choose from ["DirectAnswer", "Explain", "CoT", "MajorityVoting", "AgentBased", "Filter", "RerankSoft", "RerankHard"].
-- **with_MediaBG**: Specify whether to use media background knowledge when evaluating the evidence.
-- **media_data**: Choose from ["mbfc", "all"]. This determines whether to use only MBFC information (mbfc) or all available information (both MBFC data and generated media background data).
 
-Results will be saved in the results folder (e.g., ``./results/results_mbfc_media`` or ``./results/results_all_media``).
+---
 
-### Evaluation of Results
-To evaluate the outcomes (precision, recall, F1 score, etc.), run the following command to get the evaluation metrics within the specific folder:
+## Notes on reproduction
 
-```bash
-python eval.py --folder './results/results_all_media'
-```
+- Decoding is greedy (`temperature=0`) for reproducibility and fair comparison.
+- Credibility-predictor checkpoints are not included upstream, so credibility-weighted reranking (CW) methods are out of scope here; this fork focuses on the generation-stage methods (Baseline / SBA / ConflictLoc).
+- Retrieval and result files are split-tagged, so `HumC` and `ModC` can be run in any order without overwriting each other.
+
+---
+
+## Attribution
+
+This work builds directly on **CONFACT**:
+
+> Ge, Z., Wu, Y., Chin, D. W. K., Lee, R. K.-W., & Cao, R. (2025). *Resolving Conflicting Evidence in Automated Fact-Checking: A Study on Retrieval-Augmented LLMs.* IJCAI 2025. arXiv:2505.17762.
+
+Original repository: https://github.com/zoeyyes/CONFACT
+
+Please cite the original CONFACT paper when using this benchmark. The additions in this fork (ConflictLoc prompts, parsing fixes, Blackwell setup, unified runner) were developed as part of an undergraduate research project (UROP).
+
+---
+
+<details>
+<summary>Original CONFACT README (preserved)</summary>
+
+*See the upstream repository for the original data-format description, media-background generation, and reranking instructions:* https://github.com/zoeyyes/CONFACT
+
+</details>

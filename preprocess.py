@@ -145,12 +145,13 @@ def main():
     nltk.download('punkt_tab')
 
     split_processor = Splitter(args.type, args.chunk_size)
+    split_name = os.path.basename(args.source).split('.')[0]  # HumC.pkl.gz -> HumC
     all_evidence = split_processor.process(args.source)
 
     qns_entities = load_gzip(args.source)
 
     retriever = BM25Retriever(args.n)
-    store_path = f'./results/top{args.n}_retrieved_{args.type}.pkl'
+    store_path = f'./results/top{args.n}_retrieved_{args.type}_{split_name}.pkl'
     retriever.retrieve_for_batch(qns_entities, all_evidence, store_path)
 
 if __name__ == "__main__":
