@@ -419,4 +419,4 @@ CONFACT-main.zip
 
 # OS/에디터
 .DS_Store
-.vscode/
+.vscode/log_*.txt
